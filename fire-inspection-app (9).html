@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#c0392b">
+<title>ตรวจสอบเครื่องดับเพลิง - APET</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+:root{--red:#c0392b;--red-light:#fdf2f1;--red-dark:#922b21;--green:#1e8449;--green-light:#eafaf1;--amber:#b7770d;--amber-light:#fef9e7;--gray-100:#f8f9fa;--gray-200:#e9ecef;--gray-300:#dee2e6;--gray-500:#adb5bd;--gray-600:#6c757d;--gray-700:#495057;--gray-900:#212529;--shadow-sm:0 1px 3px rgba(0,0,0,0.08);--r-sm:8px;--r-md:12px;--r-lg:16px;--font:'Sarabun',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--font);background:var(--gray-100);color:var(--gray-900);min-height:100vh;max-width:480px;margin:0 auto}
+.header{background:var(--red);color:white;padding:50px 16px 14px;position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(192,57,43,.3)}
+.header-row{display:flex;align-items:center;gap:10px}
+.header-logo{width:36px;height:36px;background:rgba(255,255,255,.18);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.header-title{font-size:16px;font-weight:700;line-height:1.2}
+.header-sub{font-size:11px;opacity:.8;margin-top:1px}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#2ecc71;display:inline-block;margin-left:6px}
+.sync-dot.syncing{background:#f39c12;animation:blink 1s infinite}
+.sync-dot.error{background:#e74c3c}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.loading-bar{position:fixed;top:0;left:0;height:3px;background:rgba(255,255,255,.7);width:0;z-index:999;transition:width .4s}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:white;display:flex;border-top:1px solid var(--gray-200);z-index:50;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 4px 7px;border:none;background:none;cursor:pointer;color:var(--gray-500);font-family:var(--font);font-size:10px;gap:3px;position:relative}
+.nav-item.active{color:var(--red)}
+.nav-item svg{width:21px;height:21px}
+.nav-badge{position:absolute;top:5px;right:calc(50% - 20px);background:var(--red);color:white;font-size:9px;min-width:15px;height:15px;border-radius:8px;display:none;align-items:center;justify-content:center;padding:0 3px}
+.content{padding:14px 14px calc(70px + env(safe-area-inset-bottom))}
+.page{display:none}.page.active{display:block}
+.card{background:white;border-radius:var(--r-md);padding:14px;margin-bottom:10px;box-shadow:var(--shadow-sm)}
+.card-title{font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+.scan-hero{background:var(--red);border-radius:var(--r-lg);padding:22px 18px;margin-bottom:10px;text-align:center;color:white;position:relative;overflow:hidden}
+.scan-hero::before{content:'';position:absolute;top:-40px;right:-40px;width:150px;height:150px;background:rgba(255,255,255,.06);border-radius:50%}
+.scan-btn{display:inline-flex;align-items:center;gap:8px;background:white;color:var(--red);border:none;border-radius:50px;padding:12px 24px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;margin-top:14px;box-shadow:0 4px 14px rgba(0,0,0,.12);transition:transform .1s}
+.scan-btn:active{transform:scale(.97)}
+#qr-reader{width:100%;border-radius:var(--r-md);overflow:hidden}
+#qr-reader video{border-radius:var(--r-md)}
+#qr-reader img{display:none!important}
+.scanner-wrapper{display:none}.scanner-wrapper.open{display:block}
+.search-box{position:relative;margin-bottom:10px}
+.search-input{width:100%;padding:10px 14px 10px 36px;border:1.5px solid var(--gray-200);border-radius:var(--r-sm);font-family:var(--font);font-size:14px;background:white;color:var(--gray-900)}
+.search-input:focus{outline:none;border-color:var(--red)}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--gray-500)}
+.filter-tabs{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.filter-tabs::-webkit-scrollbar{display:none}
+.ftab{padding:6px 12px;border:1.5px solid var(--gray-200);border-radius:50px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;background:white;color:var(--gray-600);white-space:nowrap}
+.ftab.active{background:var(--red);color:white;border-color:var(--red)}
+.ext-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray-200);cursor:pointer}
+.ext-item:last-child{border-bottom:none}.ext-item:active{opacity:.7}
+.ext-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.ext-icon.ok{background:var(--green-light)}.ext-icon.warn{background:var(--amber-light)}.ext-icon.danger{background:var(--red-light)}.ext-icon.pending{background:var(--gray-100)}
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;flex-shrink:0}
+.badge-ok{background:var(--green-light);color:var(--green)}.badge-warn{background:var(--amber-light);color:var(--amber)}.badge-danger{background:var(--red-light);color:var(--red-dark)}.badge-pending{background:var(--gray-100);color:var(--gray-600)}
+.ext-info-header{background:var(--red);color:white;border-radius:var(--r-md);padding:14px;margin-bottom:10px}
+.ext-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.info-field{font-size:12px}.info-label{opacity:.72;margin-bottom:1px}.info-value{font-weight:700}
+.check-item{padding:11px 0;border-bottom:1px solid var(--gray-200)}.check-item:last-child{border-bottom:none}
+.check-question{font-size:13px;color:var(--gray-700);margin-bottom:7px;line-height:1.4}
+.check-buttons{display:flex;gap:7px}
+.check-btn{flex:1;padding:9px;border:1.5px solid var(--gray-300);border-radius:var(--r-sm);background:white;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;color:var(--gray-600)}
+.check-btn.pass{background:var(--green-light);border-color:#a9dfbf;color:var(--green)}.check-btn.fail{background:var(--red-light);border-color:#f1948a;color:var(--red-dark)}
+.check-progress{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray-200);margin-bottom:4px}
+.check-prog-track{flex:1;background:var(--gray-200);border-radius:4px;height:6px;overflow:hidden}
+.check-prog-fill{height:100%;border-radius:4px;background:var(--green);transition:width .3s}
+.form-group{margin-bottom:10px}
+.form-label{font-size:11px;font-weight:700;color:var(--gray-600);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.4px}
+.form-input{width:100%;padding:11px 13px;border:1.5px solid var(--gray-200);border-radius:var(--r-sm);font-family:var(--font);font-size:14px;color:var(--gray-900);background:white;appearance:none}
+.form-input:focus{outline:none;border-color:var(--red)}
+.btn-primary{width:100%;padding:14px;background:var(--red);color:white;border:none;border-radius:var(--r-md);font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(192,57,43,.25)}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed}
+.btn-secondary{width:100%;padding:12px;background:white;color:var(--gray-700);border:1.5px solid var(--gray-300);border-radius:var(--r-md);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;margin-top:7px}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.stat-card{background:white;border-radius:var(--r-md);padding:12px 8px;text-align:center;box-shadow:var(--shadow-sm)}
+.stat-num{font-size:24px;font-weight:700;line-height:1}.stat-label{font-size:10px;color:var(--gray-500);margin-top:3px;font-weight:600}
+.hist-item{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid var(--gray-200)}.hist-item:last-child{border-bottom:none}
+.hist-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.hist-meta{font-size:11px;color:var(--gray-500);margin-top:2px}
+.progress-track{background:var(--gray-200);border-radius:4px;height:5px;margin-top:5px;overflow:hidden}
+.progress-fill{height:100%;border-radius:4px;transition:width .4s}
+.alert-item{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--gray-200);align-items:flex-start}.alert-item:last-child{border-bottom:none}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;z-index:200}.modal-overlay.open{display:flex}
+.modal{background:white;border-radius:22px 22px 0 0;padding:22px 18px calc(22px + env(safe-area-inset-bottom));width:100%;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:38px;height:4px;background:var(--gray-200);border-radius:2px;margin:0 auto 18px}
+.result-icon{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:34px}
+.empty-state{text-align:center;padding:36px 16px;color:var(--gray-500)}
+.empty-icon{font-size:44px;margin-bottom:10px;opacity:.6}
+.toast{position:fixed;top:90px;left:50%;transform:translateX(-50%) translateY(-16px);background:var(--gray-900);color:white;padding:9px 18px;border-radius:50px;font-size:13px;font-weight:600;z-index:300;opacity:0;transition:all .2s;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.cloud-banner{background:#e8f4f8;border:1px solid #b8d4e8;border-radius:var(--r-sm);padding:8px 12px;margin-bottom:10px;font-size:12px;color:#1a5276;display:flex;align-items:center;gap:8px}
+</style>
+</head>
+<body>
+<div class="loading-bar" id="loadingBar"></div>
+<div class="header">
+  <div class="header-row">
+    <div class="header-logo">🧯</div>
+    <div style="flex:1">
+      <div class="header-title">ตรวจสอบเครื่องดับเพลิง <span class="sync-dot" id="syncDot"></span></div>
+      <div class="header-sub" id="syncStatus">APET · กำลังเชื่อมต่อ...</div>
+    </div>
+  </div>
+</div>
+<div class="content">
+  <div id="page-scan" class="page active">
+    <div class="cloud-banner">☁️ ข้อมูลซิงค์ทุกเครื่องผ่าน Google Sheets</div>
+    <div class="scan-hero">
+      <div style="font-size:40px;margin-bottom:6px;position:relative;z-index:1">📷</div>
+      <div style="font-size:17px;font-weight:700;position:relative;z-index:1">สแกน QR Code</div>
+      <div style="font-size:12px;opacity:.8;margin-top:3px;position:relative;z-index:1">ชี้กล้องที่ QR Code บนถังดับเพลิง</div>
+      <button class="scan-btn" onclick="startScanner()">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        เปิดกล้องสแกน
+      </button>
+    </div>
+    <div class="scanner-wrapper" id="scannerWrapper">
+      <div class="card" style="padding:10px">
+        <div id="qr-reader"></div>
+        <button class="btn-secondary" onclick="stopScanner()" style="margin-top:8px;font-size:13px">ยกเลิก</button>
+      </div>
+    </div>
+    <div class="search-box">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" type="search" id="searchInput" placeholder="ค้นหาชื่อถัง หรือสถานที่..." oninput="renderExtList()">
+    </div>
+    <div class="filter-tabs">
+      <button class="ftab active" onclick="setFilter('all',this)">ทั้งหมด (44)</button>
+      <button class="ftab" onclick="setFilter('danger',this)">เกินกำหนด</button>
+      <button class="ftab" onclick="setFilter('warn',this)">ใกล้กำหนด</button>
+      <button class="ftab" onclick="setFilter('pending',this)">รอตรวจ</button>
+      <button class="ftab" onclick="setFilter('ok',this)">ตรวจแล้ว</button>
+    </div>
+    <div class="card" style="padding:0 14px"><div id="extList"></div></div>
+  </div>
+
+  <div id="page-inspect" class="page">
+    <div id="extInfoHeader" class="ext-info-header"></div>
+    <div class="card">
+      <div class="check-progress">
+        <div style="font-size:12px;color:var(--gray-600);font-weight:600;white-space:nowrap" id="checkProgLabel">0 / 9</div>
+        <div class="check-prog-track"><div class="check-prog-fill" id="checkProgBar" style="width:0%"></div></div>
+      </div>
+      <div id="checklistContainer"></div>
+    </div>
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label">ชื่อผู้ตรวจสอบ</label>
+        <input class="form-input" type="text" id="inspectorName" placeholder="ชื่อ-นามสกุล">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">หมายเหตุ</label>
+        <input class="form-input" type="text" id="inspectNote" placeholder="ข้อสังเกตเพิ่มเติม (ถ้ามี)">
+      </div>
+    </div>
+    <button class="btn-primary" id="submitBtn" onclick="submitInspection()">💾 บันทึกผลการตรวจสอบ</button>
+    <button class="btn-secondary" onclick="goBack()">ยกเลิก</button>
+    <div style="height:6px"></div>
+  </div>
+
+  <div id="page-history" class="page">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-num" id="h-total" style="color:var(--gray-900)">0</div><div class="stat-label">รวม</div></div>
+      <div class="stat-card"><div class="stat-num" id="h-pass" style="color:var(--green)">0</div><div class="stat-label">ผ่าน</div></div>
+      <div class="stat-card"><div class="stat-num" id="h-fail" style="color:var(--red)">0</div><div class="stat-label">ไม่ผ่าน</div></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="card-title" style="margin-bottom:0">ประวัติการตรวจสอบ</div>
+        <button onclick="loadHistory(true)" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;font-family:var(--font);font-weight:600">🔄 รีเฟรช</button>
+      </div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <div id="page-alerts" class="page">
+    <div class="card"><div class="card-title">การแจ้งเตือน</div><div id="alertsList"></div></div>
+    <div class="card"><div class="card-title">สถานะถังทั้งหมด</div><div id="extStatusAll"></div></div>
+  </div>
+
+  <div id="page-dashboard" class="page">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-num" id="d-total" style="color:var(--gray-900)">44</div><div class="stat-label">ถังทั้งหมด</div></div>
+      <div class="stat-card"><div class="stat-num" id="d-ok" style="color:var(--green)">0</div><div class="stat-label">ตรวจแล้ว</div></div>
+      <div class="stat-card"><div class="stat-num" id="d-pending" style="color:var(--amber)">44</div><div class="stat-label">รอตรวจ</div></div>
+    </div>
+    <div class="card"><div class="card-title">สรุปตามประเภท</div><div id="typeSummary"></div></div>
+    <div class="card"><div class="card-title">ความคืบหน้ารายถัง</div><div id="progressList" style="max-height:380px;overflow-y:auto"></div></div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-item active" onclick="switchPage('scan')" id="nav-scan">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="5" height="5" rx="1"/><rect x="16" y="3" width="5" height="5" rx="1"/><rect x="3" y="16" width="5" height="5" rx="1"/><path d="M21 16h-3a2 2 0 00-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 01-2 2H7"/></svg>สแกน
+  </button>
+  <button class="nav-item" onclick="switchPage('history')" id="nav-history">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>ประวัติ
+  </button>
+  <button class="nav-item" onclick="switchPage('alerts')" id="nav-alerts" style="position:relative">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+    <span id="alertBadge" class="nav-badge">0</span>แจ้งเตือน
+  </button>
+  <button class="nav-item" onclick="switchPage('dashboard')" id="nav-dashboard">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>สรุป
+  </button>
+</nav>
+
+<div class="modal-overlay" id="resultModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;padding-bottom:4px">
+      <div class="result-icon" id="resultIcon"></div>
+      <div style="font-size:19px;font-weight:700;margin-bottom:6px" id="resultTitle"></div>
+      <div style="font-size:13px;color:var(--gray-600);line-height:1.6" id="resultDesc"></div>
+    </div>
+    <div style="margin-top:20px">
+      <button class="btn-primary" onclick="afterInspect('next')">สแกนถังต่อไป</button>
+      <button class="btn-secondary" onclick="afterInspect('history')">ดูประวัติทั้งหมด</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<iframe id="_sf" name="_sf" style="display:none"></iframe>
+
+<script>
+const API='https://script.google.com/macros/s/AKfycbxVsXkoKjZ7a0lGDi6xNF3LBJbt1cMWyEkiaK0gDb3FeLKC7gm2vxQnV6RGB9M1VnTI/exec';
+const LS_PENDING='apet_q';const LS_DATA='apet_cache';
+
+const CHECKLIST=[
+  {label:'สลัก',desc:'สลักอยู่ในสภาพเรียบร้อย ไม่หัก ไม่หาย'},
+  {label:'คันบีบ / ซีลล็อค',desc:'คันบีบและซีลล็อคอยู่ในสภาพดี ไม่แตกหัก'},
+  {label:'สายฉีด',desc:'สายฉีดไม่มีรอยแตก รอยรั่ว หรืออุดตัน'},
+  {label:'กระบอกฉีด',desc:'กระบอกฉีดไม่มีรอยแตก บิ่น หรือเสียหาย'},
+  {label:'สภาพถัง',desc:'ไม่มีรอยแตก บุบ สนิม หรือสีลอก'},
+  {label:'เกจวัดความดัน',desc:'เกจอยู่ในโซนสีเขียว หรือค่อนไปทางขวา = OK | ทางซ้าย = NG'},
+  {label:'น้ำหนัก',desc:'น้ำหนักตรงตามที่ระบุ (CO₂ ต้องไม่น้อยกว่า 11.2 Kg)'},
+  {label:'สิ่งกีดขวาง',desc:'ไม่มีสิ่งกีดขวาง หยิบใช้งานได้ทันที'},
+  {label:'ป้ายตรวจเช็ค',desc:'ป้ายตรวจเช็คติดครบ มีบันทึกรอบก่อนหน้า'},
+];
+
+const EM=[
+  ['FE1-BF',1,'ประตู (Coil)','BF2000','BF'],['FE2-BF',2,'Lathe Machine','BF2000','BF'],
+  ['FE3-BF',3,'Shot Blasting (No.4)','BF2000','BF'],['FE4-BF',4,'Auto Welding (G)','BF2000','BF'],
+  ['FE5-BF',5,'Water Tank Test (G)','BF2000','BF'],['FE6-BF',6,'ซ่อมแก้ไขงาน','BF2000','BF'],
+  ['FE7-BF',7,'Packing','BF2000','BF'],['FE8-BF',8,'Dipping Room','BF2000','BF'],
+  ['FE9-BF',9,'Oven','BF2000','BF'],['FE10-BF',10,'Auto Welding (H)','BF2000','BF'],
+  ['FE11-BF',11,'Brazing','BF2000','BF'],['FE12-BF',12,'Spare Parts Room','BF2000','BF'],
+  ['FE13-BF',13,'Office SPP (1)','BF2000','BF'],['FE14-BF',14,'Office SPP (2)','BF2000','BF'],
+  ['FE15-BF',15,'Press (315)','BF2000','BF'],['FE16-BF',16,'Press (600)','BF2000','BF'],
+  ['FE17-BF',17,'Shot Blasting (No.1)','BF2000','BF'],['FE18-BF',18,'Auto Welding (A)','BF2000','BF'],
+  ['FE19-BF',19,'Auto Welding (D)','BF2000','BF'],['FE20-BF',20,'Conveyor','BF2000','BF'],
+  ['FE21-BF',21,'Packing (MCP)','BF2000','BF'],['FE22-D',22,'LPG1','Dry Chemical','D'],
+  ['FE23-D',23,'LPG2','Dry Chemical','D'],['FE24-BF',24,'Engineering Section (Die Group)','BF2000','BF'],
+  ['FE25-BF',25,'Engineering Section (New Model)','BF2000','BF'],['FE26-BF',26,'Engineering Section (Machine)','BF2000','BF'],
+  ['FE27-D',27,'Engineering Section (Kaizen)','Dry Chemical','D'],['FE28-D',28,'Forklift TOYOTA','Dry Chemical','D'],
+  ['FE29-D',29,'Forklift HELI 1','Dry Chemical','D'],['FE30-D',30,'Forklift HELI 2','Dry Chemical','D'],
+  ['FE31-W',31,'Canteen','Wet Chemical','W'],['FE32-D',32,'Security Guard Room','Dry Chemical','D'],
+  ['FE33-D',33,'Truck 83-2118','Dry Chemical','D'],['FE34-D',34,'Truck 83-7319','Dry Chemical','D'],
+  ['FE35-D',35,'Truck 84-5311','Dry Chemical','D'],['FE36-D',36,'Welding Machine 1','Dry Chemical','D'],
+  ['FE37-D',37,'Welding Machine 2','Dry Chemical','D'],['FE38-D',38,'Gas Cutting 1','Dry Chemical','D'],
+  ['FE39-D',39,'Gas Cutting 2','Dry Chemical','D'],['FE40-BF',40,'ข้างบันได MDB','BF2000','BF'],
+  ['FE41-BF',41,'ระบบ Solar (ENG)','BF2000','BF'],['FE42-D',42,'Truck 84-5307','Dry Chemical','D'],
+  ['FE43-BF',43,'1st Floor Office','BF2000','BF'],['FE44-BF',44,'2nd Floor Office','BF2000','BF'],
+];
+
+const xm={};EM.forEach(([id,no,loc,type,tk])=>{xm[id]={id,no,location:loc,type,typeKey:tk,lastInspect:'2026-04-01',nextInspect:'2026-05-01'};});
+
+let inspections=[];
+let curId=null,chk={},filter='all';
+let scanner=null;
+
+function dd(ds){const t=new Date();t.setHours(0,0,0,0);const d=new Date(ds);d.setHours(0,0,0,0);return Math.round((d-t)/86400000);}
+function gs(e){const d=dd(e.nextInspect);return d<0?'danger':d<=14?'warn':'ok';}
+function sl(s){return{ok:'ปกติ',warn:'ใกล้กำหนด',danger:'เกินกำหนด',pending:'รอตรวจ'}[s];}
+function fd(ds){if(!ds)return'—';return new Date(ds).toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});}
+function te(k){return{BF:'🔵',D:'🟠',W:'🟢'}[k]||'🔵';}
+function toast(msg,t=2400){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),t);}
+function bar(p){document.getElementById('loadingBar').style.width=p+'%';}
+function sync(s,m){document.getElementById('syncDot').className='sync-dot '+s;document.getElementById('syncStatus').textContent=m;}
+
+function getPQ(){try{return JSON.parse(localStorage.getItem(LS_PENDING)||'[]');}catch(e){return[];}}
+function addPQ(r){try{const q=getPQ();q.push(r);localStorage.setItem(LS_PENDING,JSON.stringify(q));}catch(e){}}
+function clrPQ(){try{localStorage.removeItem(LS_PENDING);}catch(e){}}
+function saveCache(d){try{localStorage.setItem(LS_DATA,JSON.stringify(d));}catch(e){}}
+function loadCache(){try{const r=localStorage.getItem(LS_DATA);return r?JSON.parse(r):[];}catch(e){return[];}}
+
+function applyData(data){
+  inspections=(data||[]).map(r=>({
+    id:r.id,extId:r.extId,extName:r.extName,location:r.location,type:r.type,
+    date:r.date,dateDisplay:r.dateDisplay,time:r.time,
+    inspector:r.inspector,note:r.note,
+    passed:parseInt(r.passed)||0,failed:parseInt(r.failed)||0,
+    failedItems:r.failedItems?r.failedItems.split(', ').filter(x=>x):[],
+    overall:r.overall
+  })).reverse();
+  inspections.forEach(r=>{
+    if(xm[r.extId]&&r.date>xm[r.extId].lastInspect){
+      xm[r.extId].lastInspect=r.date;
+      const n=new Date(r.date);n.setMonth(n.getMonth()+1);
+      xm[r.extId].nextInspect=n.toISOString().split('T')[0];
+    }
+  });
+  saveCache(data);
+  updateAlertBadge();renderExtList();
+  if(document.getElementById('page-history').classList.contains('active'))renderHistory();
+  if(document.getElementById('page-dashboard').classList.contains('active'))renderDashboard();
+}
+
+function loadHistory(show=false){
+  sync('syncing','กำลังโหลด...');
+  if(show)bar(20);
+  // load cache first for instant display
+  const cached=loadCache();
+  if(cached.length){applyData(cached);}
+  // then fetch fresh
+  const s=document.createElement('script');
+  const cbName='_cb'+Date.now();
+  window[cbName]=function(data){
+    delete window[cbName];s.remove();
+    applyData(data);
+    sync('','เชื่อมต่อ Google Sheets ✓');
+    bar(100);setTimeout(()=>bar(0),500);
+    flushPQ();
+  };
+  s.onerror=()=>{delete window[cbName];s.remove();sync('error','ออฟไลน์ — ข้อมูลในเครื่อง');bar(0);};
+  s.src=API+'?callback='+cbName+'&t='+Date.now();
+  document.head.appendChild(s);
+  setTimeout(()=>{if(window[cbName]){delete window[cbName];sync('error','เชื่อมต่อช้า');bar(0);}},12000);
+}
+
+function postRecord(record){
+  return new Promise((resolve,reject)=>{
+    const cbName='_save'+Date.now();
+    const s=document.createElement('script');
+    const data=encodeURIComponent(JSON.stringify(record));
+    window[cbName]=function(res){delete window[cbName];s.remove();resolve(res);};
+    s.onerror=()=>{delete window[cbName];s.remove();reject(new Error('save failed'));};
+    s.src=API+'?action=save&callback='+cbName+'&data='+data+'&t='+Date.now();
+    document.head.appendChild(s);
+    setTimeout(()=>{if(window[cbName]){delete window[cbName];resolve('timeout_ok');}},5000);
+  });
+}
+
+async function flushPQ(){
+  const q=getPQ();if(!q.length)return;
+  for(const r of q)await postRecord(r);
+  clrPQ();toast('ซิงค์ข้อมูลค้างไว้ '+q.length+' รายการ ✓');
+}
+
+const PAGES=['scan','history','alerts','dashboard'];
+function switchPage(p){
+  PAGES.forEach(x=>{document.getElementById('page-'+x).classList.toggle('active',x===p);document.getElementById('nav-'+x).classList.toggle('active',x===p);});
+  document.getElementById('page-inspect').classList.remove('active');
+  stopScanner();
+  if(p==='scan'){loadHistory();renderExtList();}
+  if(p==='history'){loadHistory(true);renderHistory();}
+  if(p==='alerts')renderAlerts();
+  if(p==='dashboard'){loadHistory();renderDashboard();}
+}
+function goBack(){stopScanner();document.getElementById('page-inspect').classList.remove('active');document.getElementById('page-scan').classList.add('active');document.getElementById('nav-scan').classList.add('active');renderExtList();}
+function setFilter(f,btn){filter=f;document.querySelectorAll('.ftab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderExtList();}
+
+function startScanner(){
+  const w=document.getElementById('scannerWrapper');w.classList.add('open');w.scrollIntoView({behavior:'smooth',block:'start'});
+  scanner=new Html5Qrcode('qr-reader');
+  scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:240,height:240}},(text)=>{
+    stopScanner();const id=text.trim().toUpperCase();
+    if(xm[id])openInspect(id);else toast('ไม่พบข้อมูล: '+text);
+  },()=>{}).catch(()=>{toast('ไม่สามารถเข้าถึงกล้อง');w.classList.remove('open');});
+}
+function stopScanner(){document.getElementById('scannerWrapper').classList.remove('open');if(scanner){scanner.stop().catch(()=>{});scanner=null;}}
+
+function renderExtList(){
+  const q=(document.getElementById('searchInput').value||'').toLowerCase();
+  const done=new Set(inspections.map(r=>r.extId));
+  const list=EM.map(([id])=>xm[id]).filter(e=>{
+    const s=done.has(e.id)?gs(e):'pending';
+    if(filter!=='all'&&s!==filter)return false;
+    if(q&&!e.id.toLowerCase().includes(q)&&!e.location.toLowerCase().includes(q))return false;
+    return true;
+  });
+  const el=document.getElementById('extList');
+  if(!list.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🔍</div><p>ไม่พบถังที่ค้นหา</p></div>';return;}
+  el.innerHTML=list.map(e=>{
+    const d=done.has(e.id);const s=d?gs(e):'pending';const dy=dd(e.nextInspect);
+    const dc=s==='danger'?'var(--red)':s==='warn'?'var(--amber)':'var(--gray-500)';
+    return`<div class="ext-item" onclick="openInspect('${e.id}')">
+      <div class="ext-icon ${s}">${te(e.typeKey)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700">${e.id} <span style="font-weight:400;color:var(--gray-500);font-size:10px">#${e.no}</span></div>
+        <div style="font-size:11px;color:var(--gray-600);margin-top:1px">${e.location} · ${e.type}</div>
+        ${d?`<div style="font-size:10px;color:${dc};margin-top:2px">ตรวจต่อไป: ${fd(e.nextInspect)} (${dy<0?'เกิน '+Math.abs(dy)+' วัน':'อีก '+dy+' วัน'})</div>`:'<div style="font-size:10px;color:var(--gray-500);margin-top:2px">ยังไม่เคยตรวจ</div>'}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <span class="badge badge-${s}">${sl(s)}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openInspect(id){
+  stopScanner();curId=id;chk={};CHECKLIST.forEach((_,i)=>chk[i]=null);
+  const e=xm[id];const s=gs(e);const dy=dd(e.nextInspect);
+  document.getElementById('extInfoHeader').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+      <div><div style="font-size:10px;opacity:.72;margin-bottom:2px">#${e.no} · ${e.type}</div><div style="font-size:18px;font-weight:700">${e.id}</div></div>
+      <span class="badge" style="background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.3)">${sl(s)}</span>
+    </div>
+    <div class="ext-info-grid">
+      <div class="info-field"><div class="info-label">สถานที่</div><div class="info-value">${e.location}</div></div>
+      <div class="info-field"><div class="info-label">ตรวจล่าสุด</div><div class="info-value">${fd(e.lastInspect)}</div></div>
+      <div class="info-field"><div class="info-label">กำหนดตรวจ</div><div class="info-value" style="color:${dy<0?'#fbb':'white'}">${fd(e.nextInspect)}</div></div>
+      <div class="info-field"><div class="info-label">สถานะ</div><div class="info-value">${dy<0?'เกิน '+Math.abs(dy)+' วัน':dy<=14?'อีก '+dy+' วัน':'ปกติ'}</div></div>
+    </div>`;
+  document.getElementById('checklistContainer').innerHTML=CHECKLIST.map((item,i)=>`
+    <div class="check-item">
+      <div class="check-question"><strong>${i+1}. ${item.label}</strong> <span style="color:var(--gray-500);font-size:12px">— ${item.desc}</span></div>
+      <div class="check-buttons">
+        <button class="check-btn" id="cp-${i}" onclick="sc(${i},'pass')">✓ ผ่าน</button>
+        <button class="check-btn" id="cf-${i}" onclick="sc(${i},'fail')">✗ ไม่ผ่าน</button>
+      </div>
+    </div>`).join('');
+  document.getElementById('inspectorName').value='';document.getElementById('inspectNote').value='';upProg();
+  PAGES.forEach(p=>{document.getElementById('page-'+p).classList.remove('active');document.getElementById('nav-'+p).classList.remove('active');});
+  document.getElementById('page-inspect').classList.add('active');window.scrollTo(0,0);
+}
+
+function sc(i,v){chk[i]=v;document.getElementById('cp-'+i).className='check-btn'+(v==='pass'?' pass':'');document.getElementById('cf-'+i).className='check-btn'+(v==='fail'?' fail':'');upProg();}
+function upProg(){const n=Object.values(chk).filter(v=>v!==null).length;document.getElementById('checkProgLabel').textContent=n+' / '+CHECKLIST.length+' รายการ';document.getElementById('checkProgBar').style.width=Math.round(n/CHECKLIST.length*100)+'%';}
+
+async function submitInspection(){
+  const n=Object.values(chk).filter(v=>v!==null).length;
+  if(n<CHECKLIST.length){toast('กรุณาตรวจให้ครบ ('+n+'/'+CHECKLIST.length+')');return;}
+  const ins=document.getElementById('inspectorName').value.trim();
+  if(!ins){toast('กรุณากรอกชื่อผู้ตรวจสอบ');document.getElementById('inspectorName').focus();return;}
+  const fi=Object.entries(chk).filter(([,v])=>v==='fail').map(([i])=>CHECKLIST[+i].label);
+  const ov=fi.length===0?'pass':'fail';
+  const now=new Date();const e=xm[curId];
+  const rec={
+    id:Date.now().toString(),extId:curId,extName:e.id,location:e.location,type:e.type,
+    date:now.toISOString().split('T')[0],
+    dateDisplay:now.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'}),
+    time:now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}),
+    inspector:ins,note:document.getElementById('inspectNote').value.trim(),
+    passed:CHECKLIST.length-fi.length,failed:fi.length,failedItems:fi,overall:ov
+  };
+  const btn=document.getElementById('submitBtn');btn.disabled=true;btn.textContent='⏳ กำลังบันทึก...';bar(40);
+  try{
+    await postRecord(rec);
+    bar(100);setTimeout(()=>bar(0),500);
+    toast('บันทึกใน Google Sheets แล้ว ✓');
+  }catch(err){
+    addPQ(rec);toast('บันทึกในเครื่องแล้ว จะซิงค์เมื่อออนไลน์');bar(0);
+  }
+  inspections.unshift(rec);
+  const nx=new Date(now);nx.setMonth(nx.getMonth()+1);
+  e.lastInspect=now.toISOString().split('T')[0];e.nextInspect=nx.toISOString().split('T')[0];
+  btn.disabled=false;btn.textContent='💾 บันทึกผลการตรวจสอบ';
+  updateAlertBadge();renderExtList();
+
+  const icon=document.getElementById('resultIcon'),title=document.getElementById('resultTitle'),desc=document.getElementById('resultDesc');
+  if(ov==='pass'){icon.style.background='var(--green-light)';icon.textContent='✅';title.textContent='ผ่านการตรวจสอบ';desc.textContent=e.id+' · '+e.location+'\nผ่านครบ '+CHECKLIST.length+' รายการ | ผู้ตรวจ: '+ins;}
+  else{icon.style.background='var(--red-light)';icon.textContent='⚠️';title.textContent='พบ '+fi.length+' รายการไม่ผ่าน';desc.innerHTML='<strong style="color:var(--red)">'+e.id+'</strong><br>'+fi.map(f=>'• '+f).join('<br>');}
+  document.getElementById('resultModal').classList.add('open');
+}
+
+function afterInspect(a){document.getElementById('resultModal').classList.remove('open');a==='next'?switchPage('scan'):switchPage('history');}
+
+function renderHistory(){
+  document.getElementById('h-total').textContent=inspections.length;
+  document.getElementById('h-pass').textContent=inspections.filter(r=>r.overall==='pass').length;
+  document.getElementById('h-fail').textContent=inspections.filter(r=>r.overall==='fail').length;
+  const el=document.getElementById('historyList');
+  if(!inspections.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><p>ยังไม่มีประวัติ<br>กด 🔄 รีเฟรช เพื่อโหลดจาก Cloud</p></div>';return;}
+  el.innerHTML=inspections.map(r=>`
+    <div class="hist-item">
+      <div class="hist-icon" style="background:${r.overall==='pass'?'var(--green-light)':'var(--red-light)'}">${r.overall==='pass'?'✅':'❌'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700">${r.extName} <span style="font-weight:400;font-size:11px;color:var(--gray-600)">${r.location}</span></div>
+        <div class="hist-meta">${r.dateDisplay} ${r.time} · ${r.inspector}</div>
+        ${r.overall==='fail'?`<div style="font-size:11px;color:var(--red);margin-top:1px">ไม่ผ่าน: ${r.failedItems.join(', ')}</div>`:''}
+        ${r.note?`<div style="font-size:11px;color:var(--gray-500);margin-top:1px">หมายเหตุ: ${r.note}</div>`:''}
+      </div>
+      <span class="badge badge-${r.overall==='pass'?'ok':'danger'}">${r.overall==='pass'?'ผ่าน':'ไม่ผ่าน'}</span>
+    </div>`).join('');
+}
+
+function renderAlerts(){
+  const al=[];
+  Object.values(xm).forEach(e=>{const d=dd(e.nextInspect);if(d<0)al.push({t:'danger',title:e.id,desc:e.location+' — เกินกำหนด '+Math.abs(d)+' วัน',i:'🔴'});else if(d<=14)al.push({t:'warn',title:e.id,desc:e.location+' — ถึงกำหนดในอีก '+d+' วัน',i:'🟡'});});
+  inspections.filter(r=>r.overall==='fail').slice(0,5).forEach(r=>{al.push({t:'danger',title:r.extName+' ตรวจไม่ผ่าน',desc:r.failedItems.join(', ')+' · '+r.dateDisplay,i:'⚠️'});});
+  document.getElementById('alertsList').innerHTML=al.length?al.map(a=>`<div class="alert-item"><div style="width:34px;height:34px;border-radius:8px;background:${a.t==='danger'?'var(--red-light)':'var(--amber-light)'};display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">${a.i}</div><div><div style="font-size:13px;font-weight:700">${a.title}</div><div style="font-size:12px;color:var(--gray-600);margin-top:1px">${a.desc}</div></div></div>`).join(''):'<div style="text-align:center;padding:22px 0;color:var(--gray-500)"><div style="font-size:34px;margin-bottom:8px">✅</div><div style="font-size:13px">ไม่มีการแจ้งเตือน</div></div>';
+  document.getElementById('extStatusAll').innerHTML=EM.map(([id])=>{const e=xm[id];const s=gs(e);return`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--gray-200)"><div><div style="font-size:13px;font-weight:700">${e.id} <span style="font-size:10px;font-weight:400;color:var(--gray-500)">${e.type}</span></div><div style="font-size:11px;color:var(--gray-500)">${e.location}</div></div><span class="badge badge-${s}">${sl(s)}</span></div>`;}).join('');
+}
+
+function updateAlertBadge(){let n=0;Object.values(xm).forEach(e=>{if(dd(e.nextInspect)<=14)n++;});n+=inspections.filter(r=>r.overall==='fail').length;const b=document.getElementById('alertBadge');b.textContent=n;b.style.display=n>0?'flex':'none';}
+
+function renderDashboard(){
+  const exts=Object.values(xm);const done=new Set(inspections.map(r=>r.extId));
+  document.getElementById('d-total').textContent=exts.length;document.getElementById('d-ok').textContent=done.size;document.getElementById('d-pending').textContent=exts.length-done.size;
+  const types={BF:{name:'BF2000',c:0,d:0},D:{name:'Dry Chemical',c:0,d:0},W:{name:'Wet Chemical',c:0,d:0}};
+  exts.forEach(e=>{if(types[e.typeKey]){types[e.typeKey].c++;if(done.has(e.id))types[e.typeKey].d++;}});
+  document.getElementById('typeSummary').innerHTML=Object.values(types).map(t=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-200)"><div style="font-size:13px;font-weight:600">${t.name}</div><div style="display:flex;align-items:center;gap:10px"><div style="font-size:12px;color:var(--gray-600)">${t.d}/${t.c} ถัง</div><span class="badge ${t.d===t.c?'badge-ok':'badge-pending'}">${t.d===t.c?'ครบแล้ว':'รอตรวจ '+(t.c-t.d)}</span></div></div>`).join('');
+  const today=new Date();
+  document.getElementById('progressList').innerHTML=EM.map(([id])=>{
+    const e=xm[id];const d=done.has(e.id);
+    const last=new Date(e.lastInspect),next=new Date(e.nextInspect);
+    const pct=Math.min(100,Math.max(0,Math.round(((today-last)/(next-last))*100)));
+    const dy=dd(e.nextInspect);const bc=d?'var(--green)':pct>90?'var(--red)':pct>70?'var(--amber)':'var(--gray-300)';
+    return`<div style="margin-bottom:13px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px"><div style="font-size:12px;font-weight:700">${e.id} <span style="font-weight:400;color:var(--gray-500);font-size:10px">${e.location}</span></div><span class="badge ${d?'badge-ok':'badge-pending'}" style="font-size:10px">${d?'✓':'รอ'}</span></div><div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${bc}"></div></div><div style="font-size:10px;color:var(--gray-500);margin-top:2px">${dy<0?'<span style="color:var(--red)">เกิน '+Math.abs(dy)+' วัน</span>':'ถึงกำหนดอีก '+dy+' วัน'}</div></div>`;
+  }).join('');
+}
+
+loadHistory();
+</script>
+</body>
+</html>
