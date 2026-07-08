@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ประวัติการตรวจถังดับเพลิง</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap');
+
+  :root {
+    --red: #C0392B;
+    --red-dark: #96281B;
+    --red-light: #FADBD8;
+    --gray-100: #F8F9FA;
+    --gray-200: #E9ECEF;
+    --gray-400: #ADB5BD;
+    --gray-600: #6C757D;
+    --gray-800: #343A40;
+    --white: #FFFFFF;
+    --green: #1E8449;
+    --green-light: #D5F5E3;
+    --orange: #D35400;
+    --orange-light: #FDEBD0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--gray-100);
+    color: var(--gray-800);
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: var(--red);
+    color: white;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .header-icon { font-size: 28px; }
+  .header-title { font-size: 18px; font-weight: 700; }
+  .header-sub { font-size: 13px; opacity: 0.85; }
+
+  /* Search area */
+  .search-section {
+    background: white;
+    padding: 20px;
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  .search-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 10px;
+    border: 2px solid var(--gray-200);
+    background: white;
+    border-radius: 8px;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--gray-600);
+  }
+  .tab-btn.active {
+    border-color: var(--red);
+    background: var(--red-light);
+    color: var(--red-dark);
+    font-weight: 600;
+  }
+
+  /* QR Scanner */
+  #scanner-area {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  #scanner-area.visible { display: flex; }
+
+  #qr-video-container {
+    width: 100%;
+    max-width: 320px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 3px solid var(--red);
+    position: relative;
+    background: #000;
+  }
+  #qr-video {
+    width: 100%;
+    display: block;
+  }
+  .scan-overlay {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 180px; height: 180px;
+    border: 2px solid rgba(255,255,255,0.8);
+    border-radius: 8px;
+    pointer-events: none;
+  }
+  .scan-overlay::before, .scan-overlay::after {
+    content: '';
+    position: absolute;
+    width: 24px; height: 24px;
+    border-color: var(--red);
+    border-style: solid;
+  }
+  .scan-overlay::before { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+  .scan-overlay::after { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+
+  .scan-hint {
+    font-size: 13px;
+    color: var(--gray-600);
+    text-align: center;
+  }
+
+  #start-scan-btn {
+    background: var(--red);
+    color: white;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #start-scan-btn:active { background: var(--red-dark); }
+
+  /* Manual search */
+  #manual-area {
+    display: none;
+  }
+  #manual-area.visible { display: block; }
+
+  .input-group {
+    display: flex;
+    gap: 8px;
+  }
+  .search-input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid var(--gray-200);
+    border-radius: 8px;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-input:focus { border-color: var(--red); }
+  .search-btn {
+    background: var(--red);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .search-btn:active { background: var(--red-dark); }
+
+  /* Status */
+  .status-bar {
+    padding: 10px 20px;
+    font-size: 13px;
+    text-align: center;
+    color: var(--gray-600);
+    background: var(--gray-100);
+  }
+  .status-bar.loading { color: var(--red); }
+  .status-bar.error { color: var(--orange); background: var(--orange-light); }
+
+  /* Results */
+  .result-section {
+    padding: 16px 20px;
+    display: none;
+  }
+  .result-section.visible { display: block; }
+
+  /* ถัง info card */
+  .tank-card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    border-left: 4px solid var(--red);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .tank-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .tank-icon { font-size: 32px; }
+  .tank-id { font-size: 20px; font-weight: 700; color: var(--red-dark); }
+  .tank-name { font-size: 14px; color: var(--gray-600); }
+  .tank-type-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--red-light);
+    color: var(--red-dark);
+    margin-top: 4px;
+  }
+
+  .tank-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--gray-200);
+  }
+  .meta-item { font-size: 13px; }
+  .meta-label { color: var(--gray-600); margin-bottom: 2px; }
+  .meta-value { font-weight: 600; }
+
+  /* Latest result highlight */
+  .latest-badge {
+    background: var(--green);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  /* History list */
+  .history-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .history-count {
+    background: var(--gray-200);
+    color: var(--gray-600);
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+
+  .history-item {
+    background: white;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border: 1px solid var(--gray-200);
+    position: relative;
+  }
+  .history-item.latest {
+    border-color: var(--green);
+    border-width: 2px;
+  }
+  .history-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .history-date {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gray-800);
+  }
+  .history-time {
+    font-size: 12px;
+    color: var(--gray-600);
+    margin-top: 1px;
+  }
+
+  .result-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .result-pass {
+    background: var(--green-light);
+    color: var(--green);
+  }
+  .result-fail {
+    background: var(--orange-light);
+    color: var(--orange);
+  }
+
+  .history-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .detail-item { }
+  .detail-label { color: var(--gray-400); }
+  .detail-value { font-weight: 600; color: var(--gray-800); }
+
+  .history-inspector {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--gray-600);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Empty */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray-400);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-text { font-size: 15px; }
+
+  /* Scanned value display */
+  .scanned-value {
+    background: var(--gray-100);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: var(--gray-600);
+    text-align: center;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">🧯</div>
+  <div>
+    <div class="header-title">ประวัติการตรวจถังดับเพลิง</div>
+    <div class="header-sub">APET · Fire Extinguisher History</div>
+  </div>
+</div>
+
+<div class="search-section">
+  <div class="search-tabs">
+    <button class="tab-btn active" onclick="switchTab('qr')">📷 สแกน QR</button>
+    <button class="tab-btn" onclick="switchTab('manual')">⌨️ พิมพ์รหัส</button>
+  </div>
+
+  <!-- QR Scanner -->
+  <div id="scanner-area">
+    <button id="start-scan-btn" onclick="startScan()">
+      <span>📷</span> เปิดกล้องสแกน
+    </button>
+    <div id="qr-video-container" style="display:none">
+      <video id="qr-video" playsinline autoplay muted></video>
+      <div class="scan-overlay"></div>
+    </div>
+    <div class="scan-hint" id="scan-hint">กดปุ่มเพื่อเปิดกล้อง แล้วจ่อ QR Code ของถัง</div>
+    <div id="scanned-display" class="scanned-value" style="display:none"></div>
+  </div>
+
+  <!-- Manual Search -->
+  <div id="manual-area">
+    <div class="input-group">
+      <input type="text" class="search-input" id="manual-input"
+        placeholder="พิมพ์รหัสถัง เช่น FE1-BF"
+        onkeydown="if(event.key==='Enter') searchManual()">
+      <button class="search-btn" onclick="searchManual()">ค้นหา</button>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar" id="status-bar">พร้อมใช้งาน</div>
+
+<div class="result-section" id="result-section">
+  <div id="tank-info"></div>
+  <div class="history-title">
+    ประวัติการตรวจ
+    <span class="history-count" id="history-count">0 ครั้ง</span>
+  </div>
+  <div id="history-list"></div>
+</div>
+
+<!-- jsQR library for QR scanning -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
+
+<script>
+// ===== CONFIG =====
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxVsXkoKjZ7a0lGDi6xNF3LBJbt1cMWyEkiaK0gDb3FeLKC7gm2vxQnV6RGB9M1VnTI/exec';
+
+
+// ===== STATE =====
+let currentTab = 'qr';
+let videoStream = null;
+let scanInterval = null;
+let allData = [];
+let isDataLoaded = false;
+
+// ===== TAB =====
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0 && tab === 'qr') || (i === 1 && tab === 'manual'));
+  });
+  document.getElementById('scanner-area').classList.toggle('visible', tab === 'qr');
+  document.getElementById('manual-area').classList.toggle('visible', tab === 'manual');
+
+  if (tab !== 'qr') stopScan();
+}
+
+// เริ่มต้นแสดง QR tab
+switchTab('qr');
+
+// ===== LOAD DATA =====
+function loadData() {
+  return new Promise((resolve) => {
+    setStatus('โหลดข้อมูล...', 'loading');
+    const cbName = 'cb_' + Date.now();
+    const script = document.createElement('script');
+    window[cbName] = function(data) {
+      delete window[cbName];
+      document.body.removeChild(script);
+      if (Array.isArray(data)) {
+        allData = data.map(row => {
+          const clean = {};
+          Object.keys(row).forEach(k => { clean[k.trim()] = String(row[k] ?? '').trim(); });
+          return clean;
+        });
+        isDataLoaded = true;
+        setStatus('โหลดข้อมูลสำเร็จ · ' + allData.length + ' รายการ');
+        resolve(true);
+      } else {
+        setStatus('ข้อมูลไม่ถูกต้อง', 'error');
+        resolve(false);
+      }
+    };
+    script.onerror = function() {
+      delete window[cbName];
+      setStatus('โหลดข้อมูลไม่ได้ · ตรวจสอบ Apps Script', 'error');
+      resolve(false);
+    };
+    script.src = APPS_SCRIPT_URL + '?callback=' + cbName;
+    document.body.appendChild(script);
+    setTimeout(() => {
+      if (window[cbName]) {
+        delete window[cbName];
+        setStatus('หมดเวลา · ลองใหม่อีกครั้ง', 'error');
+        resolve(false);
+      }
+    }, 15000);
+  });
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+
+  const headers = parseCSVLine(lines[0]);
+  const rows = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const vals = parseCSVLine(lines[i]);
+    if (vals.length < 2) continue;
+    const row = {};
+    headers.forEach((h, idx) => { row[h.trim()] = (vals[idx] || '').trim(); });
+    rows.push(row);
+  }
+  return rows;
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; }
+    else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+    else { cur += c; }
+  }
+  result.push(cur);
+  return result;
+}
+
+// ===== SEARCH =====
+function searchByExtId(extId) {
+  const query = extId.trim().toUpperCase();
+  // ค้นหาจากคอลัมน์ extId (B) หรือ extName (C)
+  const matches = allData.filter(row => {
+    const b = (row['extId'] || '').toUpperCase();
+    const c = (row['extName'] || '').toUpperCase();
+    return b === query || c === query;
+  });
+  return matches;
+}
+
+function showResults(extId, matches) {
+  const resultSection = document.getElementById('result-section');
+  const tankInfo = document.getElementById('tank-info');
+  const historyList = document.getElementById('history-list');
+  const historyCount = document.getElementById('history-count');
+
+  resultSection.classList.add('visible');
+
+  if (matches.length === 0) {
+    tankInfo.innerHTML = '';
+    historyCount.textContent = '0 ครั้ง';
+    historyList.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-text">ไม่พบข้อมูลถัง "${extId}"</div>
+      </div>`;
+    return;
+  }
+
+  // เรียงตามวันที่+เวลา (เก่า→ใหม่)
+  matches.sort((a, b) => {
+    const da = (a['date'] || '') + ' ' + (a['time'] || '');
+    const db = (b['date'] || '') + ' ' + (b['time'] || '');
+    return da.localeCompare(db);
+  });
+
+  const latest = matches[matches.length - 1];
+
+  // Tank Info Card
+  tankInfo.innerHTML = `
+    <div class="tank-card">
+      <div class="tank-card-header">
+        <div class="tank-icon">🧯</div>
+        <div>
+          <div class="tank-id">${latest['extId'] || extId}</div>
+          <div class="tank-name">${latest['location'] || '-'}</div>
+          <span class="tank-type-badge">${latest['type'] || '-'}</span>
+        </div>
+      </div>
+      <div class="tank-meta">
+        <div class="meta-item">
+          <div class="meta-label">ตรวจล่าสุด</div>
+          <div class="meta-value">${latest['dateDisplay'] || latest['date'] || '-'}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">เวลา</div>
+          <div class="meta-value">${latest['time'] || '-'}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">ผู้ตรวจ</div>
+          <div class="meta-value">${latest['inspector'] || '-'}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">ผลล่าสุด</div>
+          <div class="meta-value" style="color:${(latest['overall']||'').toLowerCase()==='pass'?'#1E8449':'#D35400'}">
+            ${(latest['overall'] || '-').toUpperCase()}
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  // History List (ล่าสุดอยู่บนสุด)
+  historyCount.textContent = `${matches.length} ครั้ง`;
+
+  const reversed = [...matches].reverse();
+  historyList.innerHTML = reversed.map((row, idx) => {
+    const isLatest = idx === 0;
+    const overall = (row['overall'] || '').toLowerCase();
+    const passed = row['passed'] || '-';
+    const failed = row['failed'] || '-';
+    const failedItems = row['failedItems'] || '-';
+    return `
+      <div class="history-item ${isLatest ? 'latest' : ''}">
+        <div class="history-item-header">
+          <div>
+            <div class="history-date">
+              ${row['dateDisplay'] || row['date'] || '-'}
+              ${isLatest ? '<span class="latest-badge">ล่าสุด</span>' : ''}
+            </div>
+            <div class="history-time">⏰ ${row['time'] || '-'}</div>
+          </div>
+          <span class="result-badge ${overall === 'pass' ? 'result-pass' : 'result-fail'}">
+            ${overall === 'pass' ? '✅ Pass' : '❌ Fail'}
+          </span>
+        </div>
+        <div class="history-details">
+          <div class="detail-item">
+            <div class="detail-label">ผ่าน</div>
+            <div class="detail-value">${passed}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">ไม่ผ่าน</div>
+            <div class="detail-value">${failed}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">รายการบกพร่อง</div>
+            <div class="detail-value">${failedItems}</div>
+          </div>
+        </div>
+        <div class="history-inspector">👤 ${row['inspector'] || '-'}</div>
+      </div>`;
+  }).join('');
+
+  // Scroll to results
+  resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ===== QR SCANNER =====
+async function startScan() {
+  if (!isDataLoaded) {
+    const ok = await loadData();
+    if (!ok) return;
+  }
+
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }
+    });
+    const video = document.getElementById('qr-video');
+    const container = document.getElementById('qr-video-container');
+    const startBtn = document.getElementById('start-scan-btn');
+
+    video.srcObject = videoStream;
+    container.style.display = 'block';
+    startBtn.textContent = '⏹ หยุดสแกน';
+    startBtn.onclick = stopScan;
+    document.getElementById('scan-hint').textContent = 'จ่อ QR Code ของถังดับเพลิง';
+
+    scanInterval = setInterval(() => scanFrame(video), 300);
+  } catch (e) {
+    setStatus('❌ ไม่สามารถเปิดกล้องได้ · ลองใช้แบบพิมพ์รหัสแทน', 'error');
+  }
+}
+
+function stopScan() {
+  if (videoStream) {
+    videoStream.getTracks().forEach(t => t.stop());
+    videoStream = null;
+  }
+  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+
+  const container = document.getElementById('qr-video-container');
+  const startBtn = document.getElementById('start-scan-btn');
+  container.style.display = 'none';
+  startBtn.innerHTML = '<span>📷</span> เปิดกล้องสแกน';
+  startBtn.onclick = startScan;
+  document.getElementById('scan-hint').textContent = 'กดปุ่มเพื่อเปิดกล้อง แล้วจ่อ QR Code ของถัง';
+}
+
+function scanFrame(video) {
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const code = jsQR(imageData.data, imageData.width, imageData.height);
+  if (code && code.data) {
+    stopScan();
+    const scannedVal = code.data.trim();
+    document.getElementById('scanned-display').textContent = `สแกนได้: ${scannedVal}`;
+    document.getElementById('scanned-display').style.display = 'block';
+    processSearch(scannedVal);
+  }
+}
+
+// ===== MANUAL SEARCH =====
+async function searchManual() {
+  const val = document.getElementById('manual-input').value.trim();
+  if (!val) return;
+  if (!isDataLoaded) {
+    const ok = await loadData();
+    if (!ok) return;
+  }
+  processSearch(val);
+}
+
+function processSearch(query) {
+  setStatus(`🔍 กำลังค้นหา "${query}"...`, 'loading');
+  const matches = searchByExtId(query);
+  if (matches.length > 0) {
+    setStatus(`พบ ${matches.length} รายการสำหรับ "${query}"`);
+  } else {
+    setStatus(`ไม่พบข้อมูลถัง "${query}"`);
+  }
+  showResults(query, matches);
+}
+
+function setStatus(msg, type = '') {
+  const bar = document.getElementById('status-bar');
+  bar.textContent = msg;
+  bar.className = 'status-bar ' + type;
+}
+
+// โหลดข้อมูลทันทีเมื่อเปิดหน้า
+loadData();
+</script>
+</body>
+</html>
